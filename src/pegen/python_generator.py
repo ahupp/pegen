@@ -303,12 +303,20 @@ class PythonParserGenerator(ParserGenerator, GrammarVisitor):
         name, call = self.callmakervisitor.visit(node.item)
         if node.name:
             name = node.name
-        if not name:
-            self.print(call)
-        else:
+
+        self.print(f"_last = {call}")
+
+        if name:
             if name != "cut":
                 name = self.dedupe(name)
-            self.print(f"({name} := {call})")
+            if call[-1] == ",":
+                self.print(f"{name} = _last[0]")
+            else:
+                self.print(f"{name} = _last")
+
+        if call[-1] == ",":
+            self.print(f"_last = True")
+
 
     def visit_Rhs(self, node: Rhs, is_loop: bool = False, is_gather: bool = False) -> None:
         if is_loop:
@@ -319,29 +327,21 @@ class PythonParserGenerator(ParserGenerator, GrammarVisitor):
     def visit_Alt(self, node: Alt, is_loop: bool, is_gather: bool) -> None:
         has_cut = any(isinstance(item.item, Cut) for item in node.items)
         has_invalid = self.invalidvisitor.visit(node)
+
         with self.local_variable_context():
             if has_cut:
                 self.print("cut = False")
-            if is_loop:
-                self.print("while (")
-            else:
-                self.print("if (")
+            self.print("while True:")
             with self.indent():
-                first = True
                 if has_invalid:
-                    self.print("self.call_invalid_rules")
-                    first = False
+                    self.print("if not self.call_invalid_rules: break")
                 for item in node.items:
-                    if first:
-                        first = False
-                    else:
-                        self.print("and")
                     self.visit(item)
                     if is_gather:
-                        self.print("is not None")
+                        self.print("if _last is not None: break")
+                    else:
+                        self.print("if not _last: break")
 
-            self.print("):")
-            with self.indent():
                 action = node.action
                 if not action:
                     if is_gather:

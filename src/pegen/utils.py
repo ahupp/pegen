@@ -3,7 +3,7 @@ import io
 import sys
 import textwrap
 import tokenize
-from typing import IO, Any, Dict, Final, Optional, Type, cast
+from typing import IO, Any, Dict, Optional, Type, cast
 
 from pegen.grammar import Grammar
 from pegen.grammar_parser import GeneratedParser as GrammarParser
@@ -47,7 +47,8 @@ def generate_parser(
 
 def run_parser(file: IO[bytes], parser_class: Type[Parser], *, verbose: bool = False) -> Any:
     # Run a parser on a file (stream).
-    tokenizer = Tokenizer(tokenize.generate_tokens(file.readline))  # type: ignore # typeshed issue #3515
+    # type: ignore # typeshed issue #3515
+    tokenizer = Tokenizer(tokenize.generate_tokens(file.readline))
     parser = parser_class(tokenizer, verbose=verbose)
     result = parser.start()
     if result is None:
@@ -62,7 +63,8 @@ def parse_string(
     if dedent:
         source = textwrap.dedent(source)
     file = io.StringIO(source)
-    return run_parser(file, parser_class, verbose=verbose)  # type: ignore # typeshed issue #3515
+    # type: ignore # typeshed issue #3515
+    return run_parser(file, parser_class, verbose=verbose)
 
 
 def make_parser(source: str) -> Type[Parser]:
@@ -72,7 +74,7 @@ def make_parser(source: str) -> Type[Parser]:
 
 
 def print_memstats() -> bool:
-    MiB: Final = 2 ** 20
+    MiB = 2 ** 20
     try:
         import psutil  # type: ignore
     except ImportError:
